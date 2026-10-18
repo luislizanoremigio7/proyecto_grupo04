@@ -1,6 +1,8 @@
 """Script principal de orquestación para ejecutar las Etapas 2, 3 y 4 del proyecto."""
 
 from pathlib import Path
+import joblib
+from tensorflow.keras.callbacks import EarlyStopping
 from src.datos import cargar_y_limpiar_datos, preparar_particiones
 from src.modelo import (
     entrenar_modelo_trivial,
@@ -33,10 +35,24 @@ def main():
     y_prob_s_val = simple.predict_proba(X_val)[:, 1]
     metricas_simple = calcular_metricas(y_val, y_pred_s_val, y_prob_s_val)
 
+    # Configuración del Early Stopping (freno de emergencia)
+    parada_temprana = EarlyStopping(
+        monitor="val_loss",      
+        patience=5,              
+        restore_best_weights=True 
+    )
+
     # 3. Red Neuronal MLP V1
     print("3. Entrenando MLP Versión 1 (1 capa oculta)...")
     mlp_v1 = construir_mlp_v1(X_train.shape[1])
-    mlp_v1.fit(X_train, y_train, epochs=5, batch_size=64, validation_data=(X_val, y_val), verbose=0)
+    mlp_v1.fit(
+        X_train, y_train, 
+        epochs=80,                  
+        batch_size=64, 
+        validation_data=(X_val, y_val), 
+        callbacks=[parada_temprana], 
+        verbose=0
+    )
     y_prob_v1_val = mlp_v1.predict(X_val, verbose=0).flatten()
     y_pred_v1_val = (y_prob_v1_val >= 0.5).astype(int)
     metricas_v1 = calcular_metricas(y_val, y_pred_v1_val, y_prob_v1_val)
@@ -44,12 +60,17 @@ def main():
     # 4. Red Neuronal MLP V2
     print("4. Entrenando MLP Versión 2 (2 capas ocultas + Dropout)...")
     mlp_v2 = construir_mlp_v2(X_train.shape[1])
-    mlp_v2.fit(X_train, y_train, epochs=5, batch_size=64, validation_data=(X_val, y_val), verbose=0)
+    mlp_v2.fit(
+        X_train, y_train, 
+        epochs=80,                  
+        batch_size=64, 
+        validation_data=(X_val, y_val), 
+        callbacks=[parada_temprana], 
+        verbose=0
+    )
     y_prob_v2_val = mlp_v2.predict(X_val, verbose=0).flatten()
     y_pred_v2_val = (y_prob_v2_val >= 0.5).astype(int)
     metricas_v2 = calcular_metricas(y_val, y_pred_v2_val, y_prob_v2_val)
-
-    print("\n=== ETAPA 4: SELECCIÓN Y EVALUACIÓN FINAL EN PRUEBA ===")
     
     # Registro de candidatos
     candidatos = {
@@ -66,7 +87,7 @@ def main():
     print(f"\n[GANADOR EN VALIDACIÓN]: {nombre_ganador}")
     print(f"Métricas de Validación: {metricas_ganador_val}")
 
-    # EVALUACIÓN ÚNICA EN TEST (Solo para la versión elegida)
+    # EVALUACIÓN ÚNICA EN TEST
     print("\nEjecutando evaluación única sobre el conjunto de PRUEBA (Test)...")
     if "MLP" in nombre_ganador:
         y_prob_test = modelo_ganador.predict(X_test, verbose=0).flatten()
@@ -86,6 +107,30 @@ def main():
         metricas_test=metricas_test_final,
         ruta_salida="modelos/ficha_tecnica.json"
     )
+
+    # CREAR CARPETA MODELOS SI NO EXISTE
+    Path("modelos").mkdir(parents=True, exist_ok=True)
+
+    # GUARDAR TODOS LOS MODELOS ENTRENADOS FÍSICAMENTE
+    print("\n[INFO] Guardando versiones de modelos en la carpeta 'modelos/'...")
+    
+    # Redes en formato nativo .keras
+    mlp_v1.save("modelos/mlp_v1.keras")
+    mlp_v2.save("modelos/mlp_v2.keras")
+    
+    # Modelo simple (Regresión Logística) en formato .pkl o .joblib
+    joblib.dump(simple, "modelos/modelo_simple_logreg.pkl")
+
+    # GUARDAR EL MODELO GANADOR OFICIAL (Promovido)
+    if "MLP" in nombre_ganador:
+        ruta_promovido = "modelos/modelo_promovido.keras"
+        modelo_ganador.save(ruta_promovido)
+    else:
+        # Si ganó la regresión logística, la guardamos como el promovido general
+        ruta_promovido = "modelos/modelo_promovido.pkl"
+        joblib.dump(modelo_ganador, ruta_promovido)
+        
+    print(f"[EXITO] Modelo ganador promovido guardado en: {ruta_promovido}")
 
 
 if __name__ == "__main__":
