@@ -46,7 +46,7 @@ def construir_mlp_v1(input_dim: int) -> keras.Model:
             layers.Dense(32, activation="relu"),
             layers.Dense(1, activation="sigmoid"),  # Clasificación binaria (sí/no)
         ],
-        name="MLP_Versión_1",
+        name="MLP_Version_1",
     )
 
     model.compile(
@@ -75,7 +75,7 @@ def construir_mlp_v2(input_dim: int) -> keras.Model:
             layers.Dropout(0.2),
             layers.Dense(1, activation="sigmoid"),  # Clasificación binaria
         ],
-        name="MLP_Versión_2",
+        name="MLP_Version_2",
     )
 
     model.compile(
