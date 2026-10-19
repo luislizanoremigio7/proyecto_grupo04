@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Asistente Comercial - Banco Marketing</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: #cbd5e1;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+        }
+        .container {
+            max-width: 650px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 680px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h2 { margin: 0; font-size: 20px; }
+        .header .subtitle { color: #93c5fd; font-size: 13px; margin-top: 4px; }
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .msg {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .msg-bot {
+            background-color: #ffffff;
+            color: var(--text-color);
+            align-self: flex-start;
+            border: 1px solid var(--border-color);
+        }
+        .msg-user {
+            background-color: var(--primary);
+            color: white;
+            align-self: flex-end;
+        }
+        .tip-box {
+            background-color: #eff6ff;
+            border-left: 3px solid var(--primary);
+            padding: 6px 10px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #1e40af;
+            border-radius: 4px;
+        }
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .human-box {
+            background-color: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>🤖 Chatbot Asistente Comercial - Banco Marketing</h2>
+        <div class="subtitle">Evaluación Conversacional Guiada de Depósitos a Plazo</div>
+    </div>
+
+    <div id="chatBox" class="chat-box">
+        <div class="msg msg-bot">
+            👋 <b>¡Hola! Soy tu asistente de evaluación comercial.</b><br>
+            Iremos recopilando la información del cliente paso a paso.<br><br>
+            <b>1. ¿Cuál es la EDAD del cliente? (ej. 35)</b>
+            <div class="tip-box">💡 <i>Tip:</i> Clientes de mayor edad buscan depósitos a tasa fija.</div>
+        </div>
+    </div>
+
+    <div class="input-area" id="inputContainer">
+        <input type="text" id="userInput" placeholder="Escribe tu respuesta en español..." onkeypress="detectarEnter(event)" autofocus>
+        <button id="btnEnviar" onclick="procesarMensaje()">Enviar</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000/predecir";
+    
+    let pasoActual = 0;
+    let reintentos = 0;
+    let datosCliente = {};
+
+    const DICCIONARIO = {
+        "si": "yes", "sí": "yes", "s": "yes", "no": "no", "n": "no",
+        "casado": "married", "casada": "married", "soltero": "single", "soltera": "single", "divorciado": "divorced",
+        "primaria": "primary", "secundaria": "secondary", "superior": "tertiary", "universitaria": "tertiary",
+        "gerente": "management", "tecnico": "technician", "técnico": "technician", "administrativo": "admin.",
+        "obrero": "blue-collar", "servicios": "services", "jubilado": "retired", "autonomo": "self-employed",
+        "estudiante": "student", "desempleado": "unemployed", "empresario": "entrepreneur",
+        "celular": "cellular", "telefono": "telephone", "teléfono": "telephone",
+        "enero": "jan", "febrero": "feb", "marzo": "mar", "abril": "apr", "mayo": "may", "junio": "jun",
+        "julio": "jul", "agosto": "aug", "septiembre": "sep", "octubre": "oct", "noviembre": "nov", "diciembre": "dec",
+        "exito": "success", "éxito": "success", "fallo": "failure", "otro": "other"
+    };
+
+    const preguntas = [
+        { clave: "age", label: "1. EDAD del cliente (ej. 35):", tipo: "number", min: 18, max: 120, tip: "Edad entre 18 y 120 años." },
+        { clave: "job", label: "2. Ocupación (gerente, técnico, administrativo, obrero, servicios, etc.):", tipo: "text", tip: "Cargos directivos poseen saldos más elevados." },
+        { clave: "marital", label: "3. Estado civil (casado / soltero / divorciado):", tipo: "text", tip: "Clientes casados evalúan metas familiares." },
+        { clave: "education", label: "4. Nivel educativo (superior / secundaria / primaria / desconocido):", tipo: "text", tip: "Mayor nivel educativo facilita entender las tasas." },
+        { clave: "default", label: "5. ¿Tiene crédito en mora? (sí / no):", tipo: "text", tip: "La mora penaliza la probabilidad." },
+        { clave: "balance", label: "6. Saldo promedio anual (€/$):", tipo: "number", tip: "Saldos altos impulsan la disposición a plazo fijo." },
+        { clave: "housing", label: "7. ¿Tiene crédito hipotecario? (sí / no):", tipo: "text", tip: "Créditos activos reducen liquidez." },
+        { clave: "loan", label: "8. ¿Tiene préstamo personal? (sí / no):", tipo: "text", tip: "Reduce capacidad de ahorro." },
+        { clave: "contact", label: "9. Medio de contacto (celular / teléfono / desconocido):", tipo: "text", tip: "Contacto móvil genera mejor conversión." },
+        { clave: "day", label: "10. Día del último contacto (1-31):", tipo: "number", min: 1, max: 31, tip: "Días de fin de mes son estratégicos." },
+        { clave: "month", label: "11. Mes del último contacto (enero ... diciembre):", tipo: "text", tip: "Últimos meses registran alzas." },
+        { clave: "campaign", label: "12. Contactos en esta campaña (ej. 1):", tipo: "number", min: 1, tip: "Más de 3 contactos genera rechazo." },
+        { clave: "pdays", label: "13. Días desde la campaña anterior (-1 si es nuevo):", tipo: "number", min: -1, tip: "-1 para clientes nuevos." },
+        { clave: "previous", label: "14. Contactos previos (ej. 0):", tipo: "number", min: 0, tip: "Interacciones previas facilitan el cierre." },
+        { clave: "poutcome", label: "15. Resultado campaña anterior (éxito / fallo / desconocido / otro):", tipo: "text", tip: "Éxito previo muestra receptividad." }
+    ];
+
+    function agregarMensaje(texto, emisor) {
+        const chatBox = document.getElementById("chatBox");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `msg msg-${emisor}`;
+        msgDiv.innerHTML = texto;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function detectarEnter(e) { 
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            procesarMensaje();
+        }
+    }
+
+    function derivarHumano(motivo) {
+        agregarMensaje(`
+            <div class="human-box">
+                <b>📞 TRANSFERENCIA A ASESOR HUMANO</b><br>
+                ${motivo}<br>
+                <i>Conectando con un ejecutivo de Ventas...</i>
+            </div>
+        `, "bot");
+        document.getElementById("inputContainer").style.display = "none";
+    }
+
+    async function procesarMensaje() {
+        const input = document.getElementById("userInput");
+        let valor = input.value.trim();
+        if (!valor) return;
+
+        agregarMensaje(valor, "user");
+        input.value = "";
+
+        const valorMin = valor.toLowerCase();
+
+        if (["humano", "asesor", "agente", "persona"].includes(valorMin)) {
+            derivarHumano("El usuario solicitó atención personalizada.");
+            return;
+        }
+
+        const configPaso = preguntas[pasoActual];
+        let esValido = true;
+        let valorProcesado = DICCIONARIO[valorMin] || valorMin;
+
+        if (configPaso.tipo === "number") {
+            const num = parseFloat(valorProcesado);
+            if (isNaN(num) || (configPaso.min !== undefined && num < configPaso.min) || (configPaso.max !== undefined && num > configPaso.max)) {
+                esValido = false;
+            } else {
+                valorProcesado = num;
+            }
+        }
+
+        if (!esValido) {
+            reintentos++;
+            if (reintentos >= 3) {
+                derivarHumano(`Exceso de reintentos en '${configPaso.label}'.`);
+                return;
+            }
+            agregarMensaje(`⚠️ Entrada no válida. ${configPaso.tip}<br><i>(Intento ${reintentos}/3)</i>`, "bot");
+            return;
+        }
+
+        reintentos = 0;
+        datosCliente[configPaso.clave] = valorProcesado;
+        pasoActual++;
+
+        if (pasoActual < preguntas.length) {
+            const sig = preguntas[pasoActual];
+            setTimeout(() => {
+                agregarMensaje(`🤖 <b>${sig.label}</b><div class="tip-box">💡 <i>Tip:</i> ${sig.tip}</div>`, "bot");
+            }, 200);
+        } else {
+            datosCliente["duration"] = 250.0;
+            setTimeout(() => {
+                agregarMensaje("⏳ Consultando datos con la API...", "bot");
+            }, 200);
+            await consultarAPI();
+        }
+    }
+
+    async function consultarAPI() {
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datosCliente)
+            });
+
+            if (!response.ok) throw new Error("Error en la API.");
+
+            const res = await response.json();
+            const prob = res.probabilidad_suscripcion;
+
+            let resultadoHtml = "";
+            if (res.predice_suscripcion) {
+                resultadoHtml = `
+                    ✨ <b>ALTA PROBABILIDAD DE SUSCRIPCIÓN</b><br><br>
+                    📊 Probabilidad estimada: <b>${prob}%</b><br><br>
+                    💡 <b>Estrategia:</b> Presentar tasa promocional de inmediato.
+                `;
+            } else {
+                resultadoHtml = `
+                    ⚠️ <b>BAJA PROBABILIDAD DE ACEPTACIÓN</b><br><br>
+                    📊 Probabilidad estimada: <b>${prob}%</b><br><br>
+                    💡 <b>Estrategia:</b> Ofrecer cuentas de liquidez inmediata.
+                `;
+            }
+
+            setTimeout(() => { agregarMensaje(resultadoHtml, "bot"); }, 400);
+
+        } catch (error) {
+            setTimeout(() => {
+                derivarHumano("No se pudo conectar con el servidor API. Asegúrate de que Uvicorn esté ejecutándose en http://127.0.0.1:8000/.");
+            }, 400);
+        }
+    }
+</script>
+
+</body>
+</html>
