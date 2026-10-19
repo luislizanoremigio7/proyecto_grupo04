@@ -26,7 +26,7 @@ def entrenar_baseline_simple(X_train, y_train) -> LogisticRegression:
 
     Utiliza class_weight='balanced' para mitigar el desbalance inicial de clases.
     """
-    baseline = LogisticRegression(class_weight="balanced", random_state=42, max_iter=1000)
+    baseline = LogisticRegression(random_state=42, max_iter=1000)
     baseline.fit(X_train, y_train)
     return baseline
 

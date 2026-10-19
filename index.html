@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción de Depósito a Plazo - Bank Marketing</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #334155;
+            --border-color: #cbd5e1;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        h2 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .presets {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .presets button {
+            background-color: #e2e8f0;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .presets button:hover {
+            background-color: #cbd5e1;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #475569;
+        }
+        input, select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: var(--primary);
+        }
+        .btn-submit {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 25px;
+            transition: background 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: var(--primary-hover);
+        }
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        .result-yes {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .result-no {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .progress-bar-container {
+            background-color: #e2e8f0;
+            border-radius: 999px;
+            height: 12px;
+            width: 100%;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🏦 Predicción de Depósito a Plazo</h2>
+    <div class="subtitle">Herramienta de asistencia comercial (Banco Marketing)</div>
+
+    <!-- Botones de llenado rápido para pruebas -->
+    <div class="presets">
+        <button type="button" onclick="cargarPerfil('normal')">👤 Perfil Promedio</button>
+        <button type="button" onclick="cargarPerfil('ideal')">⭐ Perfil Ideal (Alto Interés)</button>
+    </div>
+
+    <form id="predictionForm" onsubmit="enviarDatos(event)">
+        <div class="grid">
+            <div class="form-group">
+                <label>Edad:</label>
+                <input type="number" id="age" min="18" max="100" value="35" required>
+            </div>
+            <div class="form-group">
+                <label>Ocupación (Trabajo):</label>
+                <select id="job">
+                    <option value="admin.">Administrativo</option>
+                    <option value="blue-collar">Obrero / Manual</option>
+                    <option value="entrepreneur">Empresario</option>
+                    <option value="housemaid">Empleada doméstica</option>
+                    <option value="management" selected>Gerencia / Dirección</option>
+                    <option value="retired">Jubilado</option>
+                    <option value="self-employed">Autónomo</option>
+                    <option value="services">Servicios</option>
+                    <option value="student">Estudiante</option>
+                    <option value="technician">Técnico</option>
+                    <option value="unemployed">Desempleado</option>
+                    <option value="unknown">Desconocido</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Estado Civil:</label>
+                <select id="marital">
+                    <option value="married" selected>Casado/a</option>
+                    <option value="single">Soltero/a</option>
+                    <option value="divorced">Divorciado/a</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nivel Educativo:</label>
+                <select id="education">
+                    <option value="tertiary" selected>Superior / Universitaria</option>
+                    <option value="secondary">Secundaria</option>
+                    <option value="primary">Primaria</option>
+                    <option value="unknown">Desconocido</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>¿Tiene crédito en mora (default)?</label>
+                <select id="default">
+                    <option value="no" selected>No</option>
+                    <option value="yes">Sí</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Saldo promedio anual (€):</label>
+                <input type="number" id="balance" step="any" value="1500" required>
+            </div>
+            <div class="form-group">
+                <label>¿Tiene crédito hipotecario?</label>
+                <select id="housing">
+                    <option value="no" selected>No</option>
+                    <option value="yes">Sí</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>¿Tiene préstamo personal?</label>
+                <select id="loan">
+                    <option value="no" selected>No</option>
+                    <option value="yes">Sí</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Medio de contacto:</label>
+                <select id="contact">
+                    <option value="cellular" selected>Celular</option>
+                    <option value="telephone">Teléfono fijo</option>
+                    <option value="unknown">Desconocido</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Día del último contacto:</label>
+                <input type="number" id="day" min="1" max="31" value="18" required>
+            </div>
+            <div class="form-group">
+                <label>Mes del último contacto:</label>
+                <select id="month">
+                    <option value="jan">Enero</option>
+                    <option value="feb">Febrero</option>
+                    <option value="mar">Marzo</option>
+                    <option value="apr">Abril</option>
+                    <option value="may">Mayo</option>
+                    <option value="jun">Junio</option>
+                    <option value="jul">Julio</option>
+                    <option value="aug">Agosto</option>
+                    <option value="sep">Septiembre</option>
+                    <option value="oct" selected>Octubre</option>
+                    <option value="nov">Noviembre</option>
+                    <option value="dec">Diciembre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Contactos en esta campaña:</label>
+                <input type="number" id="campaign" min="1" value="1" required>
+            </div>
+            <div class="form-group">
+                <label>Días desde campaña anterior (-1 si ninguno):</label>
+                <input type="number" id="pdays" value="-1" required>
+            </div>
+            <div class="form-group">
+                <label>Contactos previos:</label>
+                <input type="number" id="previous" min="0" value="0" required>
+            </div>
+            <div class="form-group">
+                <label>Resultado campaña anterior:</label>
+                <select id="poutcome">
+                    <option value="unknown" selected>Desconocido / N/A</option>
+                    <option value="success">Éxito</option>
+                    <option value="failure">Fallo</option>
+                    <option value="other">Otro</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">🔮 Estimar Probabilidad de Suscripción</button>
+    </form>
+
+    <div id="resultadoBox" class="result-box">
+        <h3 id="textoResultado" style="margin: 0 0 10px 0;"></h3>
+        <p id="detalleResultado" style="margin: 0; font-weight: 500;"></p>
+        <div class="progress-bar-container">
+            <div id="barraProgreso" class="progress-bar"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function cargarPerfil(tipo) {
+        if (tipo === 'normal') {
+            document.getElementById('age').value = 35;
+            document.getElementById('job').value = "blue-collar";
+            document.getElementById('marital').value = "married";
+            document.getElementById('education').value = "secondary";
+            document.getElementById('default').value = "no";
+            document.getElementById('balance').value = 200;
+            document.getElementById('housing').value = "yes";
+            document.getElementById('loan').value = "no";
+            document.getElementById('contact').value = "cellular";
+            document.getElementById('day').value = 12;
+            document.getElementById('month').value = "may";
+            document.getElementById('campaign').value = 2;
+            document.getElementById('pdays').value = -1;
+            document.getElementById('previous').value = 0;
+            document.getElementById('poutcome').value = "unknown";
+        } else if (tipo === 'ideal') {
+            document.getElementById('age').value = 48;
+            document.getElementById('job').value = "management";
+            document.getElementById('marital').value = "married";
+            document.getElementById('education').value = "tertiary";
+            document.getElementById('default').value = "no";
+            document.getElementById('balance').value = 5200;
+            document.getElementById('housing').value = "no";
+            document.getElementById('loan').value = "no";
+            document.getElementById('contact').value = "cellular";
+            document.getElementById('day').value = 22;
+            document.getElementById('month').value = "oct";
+            document.getElementById('campaign').value = 1;
+            document.getElementById('pdays').value = 180;
+            document.getElementById('previous').value = 3;
+            document.getElementById('poutcome').value = "success";
+        }
+    }
+
+    async function enviarDatos(event) {
+        event.preventDefault();
+        
+        const datos = {
+            age: parseInt(document.getElementById('age').value),
+            job: document.getElementById('job').value,
+            marital: document.getElementById('marital').value,
+            education: document.getElementById('education').value,
+            default: document.getElementById('default').value,
+            balance: parseFloat(document.getElementById('balance').value),
+            housing: document.getElementById('housing').value,
+            loan: document.getElementById('loan').value,
+            contact: document.getElementById('contact').value,
+            day: parseInt(document.getElementById('day').value),
+            month: document.getElementById('month').value,
+            campaign: parseInt(document.getElementById('campaign').value),
+            pdays: parseInt(document.getElementById('pdays').value),
+            previous: parseInt(document.getElementById('previous').value),
+            poutcome: document.getElementById('poutcome').value
+        };
+
+        const box = document.getElementById('resultadoBox');
+        const txtResultado = document.getElementById('textoResultado');
+        const detResultado = document.getElementById('detalleResultado');
+        const barra = document.getElementById('barraProgreso');
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/predecir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al conectar con la API');
+            }
+
+            const res = await response.json();
+            box.style.display = 'block';
+            
+            const prob = res.probabilidad_suscripcion;
+            barra.style.width = prob + '%';
+
+            if (res.predice_suscripcion) {
+                box.className = 'result-box result-yes';
+                txtResultado.innerHTML = `✨ ¡Cliente con alta probabilidad de suscripción!`;
+            } else {
+                box.className = 'result-box result-no';
+                txtResultado.innerHTML = `⚠️ Baja probabilidad de aceptación`;
+            }
+            detResultado.innerHTML = `Probabilidad calculada: <strong>${prob}%</strong>`;
+
+        } catch (error) {
+            alert('No se pudo comunicar con el servidor FastAPI. Asegúrate de que Uvicorn esté corriendo.');
+            console.error(error);
+        }
+    }
+</script>
+
+</body>
+</html>
