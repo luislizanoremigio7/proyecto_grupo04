@@ -1,8 +1,15 @@
+"""Módulo de validación de esquemas y enumeraciones para los datos de entrada de la API.
+
+Define las estructuras de datos tipadas mediante Pydantic y los catálogos
+de opciones (Enumeraciones) basados estrictamente en el dataset Bank Marketing.
+"""
+
 from pydantic import BaseModel, Field
 from enum import Enum
 
-# Definición de enumeraciones con las opciones reales del dataset Bank Marketing
+
 class JobEnum(str, Enum):
+    """Enumeración con los tipos de ocupación laboral contemplados en el dataset."""
     admin = "admin."
     blue_collar = "blue-collar"
     entrepreneur = "entrepreneur"
@@ -16,27 +23,37 @@ class JobEnum(str, Enum):
     unemployed = "unemployed"
     unknown = "unknown"
 
+
 class MaritalEnum(str, Enum):
+    """Enumeración con los estados civiles posibles."""
     divorced = "divorced"
     married = "married"
     single = "single"
 
+
 class EducationEnum(str, Enum):
+    """Enumeración con los niveles educativos alcanzados."""
     primary = "primary"
     secondary = "secondary"
     tertiary = "tertiary"
     unknown = "unknown"
 
+
 class YesNoEnum(str, Enum):
+    """Enumeración binaria estándar para afirmaciones."""
     yes = "yes"
     no = "no"
 
+
 class ContactEnum(str, Enum):
+    """Enumeración con los medios de comunicación de contacto."""
     cellular = "cellular"
     telephone = "telephone"
     unknown = "unknown"
 
+
 class MonthEnum(str, Enum):
+    """Enumeración con los meses del año."""
     jan = "jan"
     feb = "feb"
     mar = "mar"
@@ -50,7 +67,9 @@ class MonthEnum(str, Enum):
     nov = "nov"
     dec = "dec"
 
+
 class POutcomeEnum(str, Enum):
+    """Enumeración con los posibles resultados de campañas de marketing anteriores."""
     failure = "failure"
     other = "other"
     success = "success"
@@ -58,6 +77,11 @@ class POutcomeEnum(str, Enum):
 
 
 class ClienteEntrada(BaseModel):
+    """Esquema de validación estricta para los atributos de entrada del cliente.
+
+    Excluye por completo la variable 'duration' para evitar la fuga de datos,
+    reuniendo exactamente 40 características de entrada procesables.
+    """
     age: int = Field(..., ge=18, le=100, description="Edad del cliente", example=41)
     job: JobEnum = Field(..., description="Tipo de trabajo del cliente")
     marital: MaritalEnum = Field(..., description="Estado civil")

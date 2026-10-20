@@ -7,7 +7,6 @@ from rich.prompt import Prompt
 console = Console()
 API_URL = "http://127.0.0.1:8000/predecir"
 
-# Mapeo de respuestas en español hacia el formato de la API / Dataset
 MAPEO_OPCIONES = {
     "education": {
         "primaria": "primary",
@@ -32,7 +31,6 @@ MAPEO_OPCIONES = {
     }
 }
 
-# Cuestionario interactivo optimizado basado en las 7 variables selectas
 PREGUNTAS_SLOTS = [
     {
         "clave": "housing",
@@ -83,7 +81,10 @@ PREGUNTAS_SLOTS = [
 ]
 
 def derivar_a_humano(motivo: str):
-    """Atiende solicitudes explícitas de derivación."""
+    """
+    Gestiona la derivación de la sesión actual hacia un asesor humano 
+    cuando se detecta una solicitud explícita o un fallo crítico.
+    """
     console.print("\n" + "=" * 60, style="bold yellow")
     console.print(Panel(
         f"[bold red]📞 DERIVACIÓN A ASESOR COMERCIAL HUMANO[/bold red]\n\n"
@@ -96,14 +97,14 @@ def derivar_a_humano(motivo: str):
     console.print("=" * 60 + "\n", style="bold yellow")
 
 def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
-    """Captura y valida la entrada soportando cualquier error sin límite de intentos."""
-    
-    # Auto-resolución de coherencia: Si previous es 0, pdays se autocompleta con -1
+    """
+    Captura, valida y mapea la entrada del usuario para un slot específico, 
+    gestionando la resolución lógica automática y comandos globales.
+    """
     if config_slot["clave"] == "pdays" and datos_acumulados.get("previous", 0) == 0:
         console.print("\n[dim]ℹ️ Como indicó 0 contactos previos, se asigna automáticamente 'Sin contacto previo' (-1).[/dim]")
         return -1, "OK"
 
-    # Auto-resolución de coherencia: Si es cliente nuevo, poutcome es automáticamente 'unknown'
     if config_slot["clave"] == "poutcome" and datos_acumulados.get("previous", 0) == 0:
         console.print("[dim]ℹ️ Asignando resultado 'desconocido' por ser cliente nuevo.[/dim]")
         return "unknown", "OK"
@@ -117,14 +118,12 @@ def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
         entrada = Prompt.ask(prompt_txt).strip()
         entrada_clean = entrada.lower().strip()
 
-        # Comandos globales
         if entrada_clean in ["humano", "asesor", "persona", "agente"]:
             return None, "SOLICITUD_USUARIO"
         if entrada_clean == "salir":
             console.print("\n[bold red]👋 Proceso terminado.[/bold red]")
             sys.exit(0)
 
-        # 1. Validación de categorías mapeadas
         if "mapeo" in config_slot:
             dicc_tipo = MAPEO_OPCIONES[config_slot["mapeo"]]
             val_mapeado = dicc_tipo.get(entrada_clean) or (entrada_clean if entrada_clean in dicc_tipo.values() else None)
@@ -135,7 +134,6 @@ def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
                 console.print(f"[bold yellow]⚠️ Entrada no comprendida.[/bold yellow] {config_slot['ayuda']}")
                 continue
 
-        # 2. Validación de valores numéricos
         try:
             valor_procesado = config_slot["tipo"](entrada_clean)
             if config_slot.get("minimo") is not None and valor_procesado < config_slot["minimo"]:
@@ -150,7 +148,10 @@ def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
             console.print(f"[bold yellow]⚠️ Entrada no válida.[/bold yellow] {config_slot['ayuda']}")
 
 def construir_payload_completo(datos_7_vars: dict) -> dict:
-    """Reconstruye el objeto completo imputando valores neutros para la API."""
+    """
+    Construye el vector de características completo para la API incorporando 
+    los valores recolectados en los slots y completando los parámetros neutros restantes.
+    """
     return {
         "housing": datos_7_vars.get("housing", "no"),
         "contact": datos_7_vars.get("contact", "cellular"),
@@ -159,8 +160,6 @@ def construir_payload_completo(datos_7_vars: dict) -> dict:
         "poutcome": datos_7_vars.get("poutcome", "unknown"),
         "education": datos_7_vars.get("education", "secondary"),
         "balance": datos_7_vars.get("balance", 0.0),
-        
-        # Variables secundarias/omitidas completadas en backend
         "age": 40,
         "job": "management",
         "marital": "married",
@@ -173,6 +172,10 @@ def construir_payload_completo(datos_7_vars: dict) -> dict:
     }
 
 def interpretar_resultado_no_tecnico(data_api: dict):
+    """
+    Procesa la respuesta JSON de la API y muestra una recomendación comercial 
+    comprensible y orientada a usuarios no técnicos.
+    """
     probabilidad = data_api.get("probabilidad", data_api.get("probabilidad_suscripcion", 0.0))
     if probabilidad <= 1.0:
         probabilidad = round(probabilidad * 100, 2)
@@ -200,6 +203,10 @@ def interpretar_resultado_no_tecnico(data_api: dict):
     console.print("=" * 60 + "\n")
 
 def ejecutar_chatbot():
+    """
+    Controlador principal del flujo conversacional del chatbot, encargado de orquestar 
+    la recolección de datos, la consulta al backend y la presentación de resultados.
+    """
     console.clear()
     console.print(Panel.fit(
         "[bold white]🤖 ASISTENTE VIRTUAL DE EVALUACIÓN COMERCIAL - BANCO MARKETING[/bold white]\n"

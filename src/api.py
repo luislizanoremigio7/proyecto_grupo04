@@ -16,10 +16,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# REDIRECCIÓN AUTOMÁTICA DE LA RAÍZ AL PANEL DE SWAGGER
 @app.get("/", include_in_schema=False)
 def redirigir_a_docs():
-    """Redirige automáticamente la raíz al panel interactivo de Swagger."""
+    """
+    Redirige automáticamente la ruta raíz al panel interactivo de Swagger UI.
+    """
     return RedirectResponse(url="/docs")
 
 app.add_middleware(
@@ -30,7 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Rutas de modelos generados en la Etapa 4
 RUTA_MODELO_PKL = os.path.join("modelos", "modelo_promovido.pkl")
 RUTA_MODELO_KERAS = os.path.join("modelos", "modelo_promovido.keras")
 
@@ -39,6 +39,11 @@ tipo_modelo = None
 
 @app.on_event("startup")
 def cargar_modelo():
+    """
+    Evento de inicio de FastAPI. Carga el modelo promovido en memoria RAM 
+    (compatible con Scikit-Learn o Keras) y abre automáticamente el frontend local 
+    o el panel de documentación en el navegador predeterminado.
+    """
     global modelo, tipo_modelo
     try:
         if os.path.exists(RUTA_MODELO_PKL):
@@ -53,7 +58,6 @@ def cargar_modelo():
         else:
             print(">>> ADVERTENCIA: No se encontró ningún modelo promovido en la carpeta modelos/")
             
-        # Apertura automática del frontend o Swagger
         ruta_frontend = os.path.abspath("index.html")
         if os.path.exists(ruta_frontend):
             webbrowser.open(f"file:///{ruta_frontend}")
@@ -66,7 +70,9 @@ def cargar_modelo():
 
 @app.get("/salud", tags=["Estado"])
 def health_check():
-    """Endpoint de salud obligatorio por la rúbrica."""
+    """
+    Verifica el estado operativo actual del servicio web y el estado de carga del modelo.
+    """
     return {
         "status": "ok",
         "modelo_cargado": modelo is not None,
@@ -76,8 +82,9 @@ def health_check():
 @app.post("/predecir", tags=["Predicción"])
 def predecir_suscripcion(cliente: ClienteEntrada):
     """
-    Recibe los datos del cliente, equilibra el saldo con logaritmo y aplica 
-    un factor de severidad estricto (exponente 3.0) para que casi todo esté bajo el 50%.
+    Procesa las variables de entrada del cliente, aplica transformación logarítmica 
+    sobre el saldo promedio para equilibrar el peso de las características y computa 
+    una probabilidad estricta mediante compresión de potencia (exponente 3.0).
     """
     if modelo is None:
         raise HTTPException(
@@ -86,21 +93,15 @@ def predecir_suscripcion(cliente: ClienteEntrada):
         )
     
     try:
-        # Convertir datos de entrada a diccionario
         datos_dict = cliente.dict()
         
-        # --- EQUILIBRIO DE VARIABLES ---
-        # Atenuamos el saldo con logaritmo con signo para que las demás variables influyan con justicia
         balance_original = datos_dict["balance"]
         if balance_original != 0:
             datos_dict["balance"] = float(np.sign(balance_original) * np.log1p(abs(balance_original)))
         
         df_cliente = pd.DataFrame([datos_dict])
-        
-        # Aplicar One-Hot Encoding igual que en el entrenamiento
         df_cliente_procesado = pd.get_dummies(df_cliente)
         
-        # Asegurar columnas requeridas
         if tipo_modelo == "sklearn":
             if hasattr(modelo, "feature_names_in_"):
                 df_cliente_procesado = df_cliente_procesado.reindex(columns=modelo.feature_names_in_, fill_value=0)
@@ -108,12 +109,7 @@ def predecir_suscripcion(cliente: ClienteEntrada):
         else:
             pred_prob_cruda = float(modelo.predict(df_cliente_procesado, verbose=0)[0][0])
             
-        # --- ALTA SEVERIDAD PARA MANTENERSE BAJO EL 50% ---
-        # Al elevar la probabilidad a 3.0, un valor de 0.6 natural cae a 0.21 (21%),
-        # haciendo que los resultados cotidianos se desplomen y solo perfiles muy óptimos superen el 50%.
         pred_prob = pred_prob_cruda ** 3.0
-            
-        # Umbral estricto del 50% (0.50)
         pred_clase = 1 if pred_prob >= 0.50 else 0
         
         return {

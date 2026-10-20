@@ -24,24 +24,17 @@ def cargar_y_limpiar_datos(ruta_csv: str | Path) -> tuple[pd.DataFrame, pd.Serie
     if not path.exists():
         raise FileNotFoundError(f"No se encontró el archivo de datos en: {path}")
 
-    # Carga con separador ';' propio del dataset UCI Bank Marketing
     df = pd.read_csv(path, sep=";")
 
-    # 1. TRATAMIENTO DE FUGA DE INFORMACIÓN (DATA LEAKAGE)
-    # La columna 'duration' no se conoce antes de realizar la llamada telefónica.
     if "duration" in df.columns:
         df = df.drop(columns=["duration"])
 
-    # 2. LIMPIEZA Y CODIFICACIÓN DE LA VARIABLE OBJETIVO ('y')
-    # El objetivo original es 'yes' / 'no'. Se convierte a binario (1 y 0).
     if "y" in df.columns:
         df["y"] = df["y"].apply(lambda val: 1 if str(val).strip().lower() == "yes" else 0)
     
     y = df["y"]
     X = df.drop(columns=["y"])
 
-    # 3. CODIFICACIÓN DE VARIABLES CATEGÓRICAS (One-Hot Encoding)
-    # Variables como job, marital, education, default, housing, loan, contact, poutcome
     X = pd.get_dummies(X, drop_first=True)
 
     return X, y
@@ -52,7 +45,6 @@ def preparar_particiones(X: pd.DataFrame, y: pd.Series) -> tuple:
 
     Aplica estratificación (stratify=y) debido al desbalance de clases (~12% positivos).
     """
-    # 70% entrenamiento, 15% validación, 15% prueba
     X_train_val, X_test, y_train_val, y_test = train_test_split(
         X, y, test_size=0.15, random_state=42, stratify=y
     )
@@ -61,11 +53,8 @@ def preparar_particiones(X: pd.DataFrame, y: pd.Series) -> tuple:
         X_train_val, y_train_val, test_size=0.1764, random_state=42, stratify=y_train_val
     )
 
-    # 4. ESCALADO NUMÉRICO (StandardScaler)
-    # Ajustado EXCLUSIVAMENTE con el conjunto de entrenamiento para evitar data leakage
     scaler = StandardScaler()
     
-    # Identificar columnas numéricas originales que requieren escalado
     columnas_numericas = ['age', 'balance', 'day', 'campaign', 'pdays', 'previous']
     cols_a_escalar = [col for col in columnas_numericas if col in X_train.columns]
 

@@ -14,6 +14,10 @@ from src.evaluacion import calcular_metricas, guardar_ficha_tecnica
 
 
 def main():
+    """Ejecuta el flujo completo de carga de datos, entrenamiento, selección de modelos,
+
+    evaluación en prueba y almacenamiento físico del modelo ganador promovido.
+    """
     print("=== ETAPA 2: CARGA Y PREPROCESAMIENTO DE DATOS ===")
     ruta_csv = Path("data/bank-full.csv")
     X, y = cargar_y_limpiar_datos(ruta_csv)
@@ -22,27 +26,23 @@ def main():
 
     print("\n=== ETAPA 3: ENTRENAMIENTO DE MODELOS ===")
     
-    # 1. Modelo Trivial
     print("1. Entrenando Modelo Trivial (Dummy)...")
     trivial = entrenar_modelo_trivial(X_train, y_train)
     y_pred_t_val = trivial.predict(X_val)
     metricas_trivial = calcular_metricas(y_val, y_pred_t_val)
 
-    # 2. Modelo Simple (Regresión Logística)
     print("2. Entrenando Modelo Simple (Regresión Logística)...")
     simple = entrenar_baseline_simple(X_train, y_train)
     y_pred_s_val = simple.predict(X_val)
     y_prob_s_val = simple.predict_proba(X_val)[:, 1]
     metricas_simple = calcular_metricas(y_val, y_pred_s_val, y_prob_s_val)
 
-    # Configuración del Early Stopping (freno de emergencia)
     parada_temprana = EarlyStopping(
         monitor="val_loss",      
         patience=5,              
         restore_best_weights=True 
     )
 
-    # 3. Red Neuronal MLP V1
     print("3. Entrenando MLP Versión 1 (1 capa oculta)...")
     mlp_v1 = construir_mlp_v1(X_train.shape[1])
     mlp_v1.fit(
@@ -57,7 +57,6 @@ def main():
     y_pred_v1_val = (y_prob_v1_val >= 0.5).astype(int)
     metricas_v1 = calcular_metricas(y_val, y_pred_v1_val, y_prob_v1_val)
 
-    # 4. Red Neuronal MLP V2
     print("4. Entrenando MLP Versión 2 (2 capas ocultas + Dropout)...")
     mlp_v2 = construir_mlp_v2(X_train.shape[1])
     mlp_v2.fit(
@@ -72,7 +71,6 @@ def main():
     y_pred_v2_val = (y_prob_v2_val >= 0.5).astype(int)
     metricas_v2 = calcular_metricas(y_val, y_pred_v2_val, y_prob_v2_val)
     
-    # Registro de candidatos
     candidatos = {
         "Modelo_Trivial": (metricas_trivial, trivial, {}),
         "Modelo_Simple_RegrLog": (metricas_simple, simple, {"class_weight": "balanced", "max_iter": 1000}),
@@ -80,14 +78,12 @@ def main():
         "MLP_Version_2": (metricas_v2, mlp_v2, {"capas": [64, 32], "dropout": [0.3, 0.2]}),
     }
 
-    # SELECCIÓN: Basada estrictamente en el F1-Score sobre VALIDACIÓN
     nombre_ganador = max(candidatos, key=lambda k: candidatos[k][0]["f1_score"])
     metricas_ganador_val, modelo_ganador, params_ganador = candidatos[nombre_ganador]
 
     print(f"\n[GANADOR EN VALIDACIÓN]: {nombre_ganador}")
     print(f"Métricas de Validación: {metricas_ganador_val}")
 
-    # EVALUACIÓN ÚNICA EN TEST
     print("\nEjecutando evaluación única sobre el conjunto de PRUEBA (Test)...")
     if "MLP" in nombre_ganador:
         y_prob_test = modelo_ganador.predict(X_test, verbose=0).flatten()
@@ -99,7 +95,6 @@ def main():
     metricas_test_final = calcular_metricas(y_test, y_pred_test, y_prob_test)
     print(f"Métricas Finales de Prueba (Test): {metricas_test_final}")
 
-    # GUARDAR FICHA TÉCNICA JSON
     guardar_ficha_tecnica(
         nombre_modelo=nombre_ganador,
         hiperparametros=params_ganador,
@@ -108,25 +103,18 @@ def main():
         ruta_salida="modelos/ficha_tecnica.json"
     )
 
-    # CREAR CARPETA MODELOS SI NO EXISTE
     Path("modelos").mkdir(parents=True, exist_ok=True)
 
-    # GUARDAR TODOS LOS MODELOS ENTRENADOS FÍSICAMENTE
     print("\n[INFO] Guardando versiones de modelos en la carpeta 'modelos/'...")
     
-    # Redes en formato nativo .keras
     mlp_v1.save("modelos/mlp_v1.keras")
     mlp_v2.save("modelos/mlp_v2.keras")
-    
-    # Modelo simple (Regresión Logística) en formato .pkl o .joblib
     joblib.dump(simple, "modelos/modelo_simple_logreg.pkl")
 
-    # GUARDAR EL MODELO GANADOR OFICIAL (Promovido)
     if "MLP" in nombre_ganador:
         ruta_promovido = "modelos/modelo_promovido.keras"
         modelo_ganador.save(ruta_promovido)
     else:
-        # Si ganó la regresión logística, la guardamos como el promovido general
         ruta_promovido = "modelos/modelo_promovido.pkl"
         joblib.dump(modelo_ganador, ruta_promovido)
         
