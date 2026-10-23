@@ -1,0 +1,156 @@
+{
+    "timestamp": "2026-10-22T19:13:50.801266",
+    "modelo": "MLP_Version_2",
+    "dataset": "Bank Marketing UCI (bank-full.csv)",
+    "datos": {
+        "archivo": "data/bank-full.csv",
+        "filas_tras_limpieza": 45195,
+        "semilla": 42,
+        "train": 31638,
+        "validacion": 6777,
+        "prueba": 6780,
+        "columna_excluida": "duration (se conoce despues de la llamada)"
+    },
+    "variables": [
+        "poutcome",
+        "month",
+        "contact",
+        "housing",
+        "job"
+    ],
+    "hiperparametros": {
+        "capas": [
+            64,
+            32
+        ],
+        "dropout": [
+            0.3,
+            0.2
+        ],
+        "optimizador": "adam",
+        "epocas_max": 80,
+        "batch_size": 64,
+        "parada_temprana": {
+            "monitor": "val_loss",
+            "patience": 5
+        },
+        "class_weight": "balanced",
+        "semilla": 42
+    },
+    "umbral": {
+        "valor": 0.58,
+        "criterio": "minimo costo en validacion (FN=5, FP=1)"
+    },
+    "metricas_validacion": {
+        "precision": 0.4047,
+        "recall": 0.5246,
+        "f1_score": 0.4569,
+        "pr_auc": 0.4107,
+        "confusion_matrix": [
+            [
+                5372,
+                612
+            ],
+            [
+                377,
+                416
+            ]
+        ],
+        "costo_total": 2497,
+        "costo_por_cliente": 0.3685
+    },
+    "metricas_prueba_final": {
+        "precision": 0.3926,
+        "recall": 0.512,
+        "f1_score": 0.4444,
+        "pr_auc": 0.3862,
+        "confusion_matrix": [
+            [
+                5359,
+                628
+            ],
+            [
+                387,
+                406
+            ]
+        ],
+        "costo_total": 2563,
+        "costo_por_cliente": 0.378
+    },
+    "promovido": true,
+    "epocas_entrenadas": 15,
+    "equidad_prueba_por_ocupacion": {
+        "admin.": {
+            "clientes": 788,
+            "suscriben": 91,
+            "recall": 0.5495,
+            "precision": 0.3571
+        },
+        "blue-collar": {
+            "clientes": 1422,
+            "suscriben": 111,
+            "recall": 0.2793,
+            "precision": 0.5345
+        },
+        "entrepreneur": {
+            "clientes": 224,
+            "suscriben": 21,
+            "recall": 0.381,
+            "precision": 0.5714
+        },
+        "housemaid": {
+            "clientes": 158,
+            "suscriben": 20,
+            "recall": 0.4,
+            "precision": 0.5333
+        },
+        "management": {
+            "clientes": 1435,
+            "suscriben": 193,
+            "recall": 0.487,
+            "precision": 0.3456
+        },
+        "retired": {
+            "clientes": 341,
+            "suscriben": 73,
+            "recall": 0.7808,
+            "precision": 0.3725
+        },
+        "self-employed": {
+            "clientes": 244,
+            "suscriben": 30,
+            "recall": 0.3333,
+            "precision": 0.2703
+        },
+        "services": {
+            "clientes": 632,
+            "suscriben": 47,
+            "recall": 0.4043,
+            "precision": 0.475
+        },
+        "student": {
+            "clientes": 155,
+            "suscriben": 41,
+            "recall": 0.8537,
+            "precision": 0.3608
+        },
+        "technician": {
+            "clientes": 1173,
+            "suscriben": 131,
+            "recall": 0.5954,
+            "precision": 0.4968
+        },
+        "unemployed": {
+            "clientes": 174,
+            "suscriben": 33,
+            "recall": 0.4545,
+            "precision": 0.3125
+        },
+        "unknown": {
+            "clientes": 34,
+            "suscriben": 2,
+            "recall": 0.5,
+            "precision": 0.3333
+        }
+    }
+}

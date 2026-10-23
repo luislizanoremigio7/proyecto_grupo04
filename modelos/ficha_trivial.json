@@ -1,0 +1,48 @@
+{
+    "timestamp": "2026-10-22T19:13:50.800033",
+    "modelo": "Modelo_Trivial",
+    "dataset": "Bank Marketing UCI (bank-full.csv)",
+    "datos": {
+        "archivo": "data/bank-full.csv",
+        "filas_tras_limpieza": 45195,
+        "semilla": 42,
+        "train": 31638,
+        "validacion": 6777,
+        "prueba": 6780,
+        "columna_excluida": "duration (se conoce despues de la llamada)"
+    },
+    "variables": [
+        "poutcome",
+        "month",
+        "contact",
+        "housing",
+        "job"
+    ],
+    "hiperparametros": {
+        "estrategia": "most_frequent"
+    },
+    "umbral": {
+        "valor": null,
+        "criterio": "minimo costo en validacion (FN=5, FP=1)"
+    },
+    "metricas_validacion": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "pr_auc": 0.117,
+        "confusion_matrix": [
+            [
+                5984,
+                0
+            ],
+            [
+                793,
+                0
+            ]
+        ],
+        "costo_total": 3965,
+        "costo_por_cliente": 0.5851
+    },
+    "metricas_prueba_final": "No evaluado en prueba",
+    "promovido": false
+}

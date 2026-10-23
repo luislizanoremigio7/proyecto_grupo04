@@ -1,0 +1,7 @@
+{
+    "timestamp": "2026-10-22T19:13:50.801581",
+    "modelo": "MLP_Version_2",
+    "archivo": "modelos/mlp_v2.keras",
+    "umbral": 0.58,
+    "motivo": "Menor costo por cliente en validación (0.3685)."
+}

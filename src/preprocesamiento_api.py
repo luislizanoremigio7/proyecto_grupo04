@@ -4,7 +4,7 @@ Define las estructuras de datos tipadas mediante Pydantic y los catálogos
 de opciones (Enumeraciones) basados estrictamente en el dataset Bank Marketing.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
 
@@ -21,21 +21,6 @@ class JobEnum(str, Enum):
     student = "student"
     technician = "technician"
     unemployed = "unemployed"
-    unknown = "unknown"
-
-
-class MaritalEnum(str, Enum):
-    """Enumeración con los estados civiles posibles."""
-    divorced = "divorced"
-    married = "married"
-    single = "single"
-
-
-class EducationEnum(str, Enum):
-    """Enumeración con los niveles educativos alcanzados."""
-    primary = "primary"
-    secondary = "secondary"
-    tertiary = "tertiary"
     unknown = "unknown"
 
 
@@ -79,21 +64,13 @@ class POutcomeEnum(str, Enum):
 class ClienteEntrada(BaseModel):
     """Esquema de validación estricta para los atributos de entrada del cliente.
 
-    Excluye por completo la variable 'duration' para evitar la fuga de datos,
-    reuniendo exactamente 40 características de entrada procesables.
+    Recibe solo las 5 variables elegidas con el ranking de correlación. Cualquier
+    otro campo (por ejemplo 'duration', que filtra el futuro) se rechaza.
     """
-    age: int = Field(..., ge=18, le=100, description="Edad del cliente", example=41)
-    job: JobEnum = Field(..., description="Tipo de trabajo del cliente")
-    marital: MaritalEnum = Field(..., description="Estado civil")
-    education: EducationEnum = Field(..., description="Nivel educativo")
-    default: YesNoEnum = Field(..., description="¿Tiene crédito en morosidad?")
-    balance: float = Field(..., description="Saldo promedio anual en euros", example=250.0)
-    housing: YesNoEnum = Field(..., description="¿Tiene préstamo hipotecario?")
-    loan: YesNoEnum = Field(..., description="¿Tiene préstamo personal?")
-    contact: ContactEnum = Field(..., description="Tipo de comunicación de contacto")
-    day: int = Field(..., ge=1, le=31, description="Último día de contacto del mes", example=15)
-    month: MonthEnum = Field(..., description="Mes del último contacto")
-    campaign: int = Field(..., ge=1, description="Número de contactos realizados en esta campaña", example=2)
-    pdays: int = Field(..., description="Días transcurridos desde la campaña anterior (-1 si no hubo)", example=-1)
-    previous: int = Field(..., description="Número de contactos previos", example=0)
+    model_config = ConfigDict(extra="forbid")
+
     poutcome: POutcomeEnum = Field(..., description="Resultado de la campaña anterior")
+    month: MonthEnum = Field(..., description="Mes en que se realizará la llamada")
+    contact: ContactEnum = Field(..., description="Tipo de comunicación de contacto")
+    housing: YesNoEnum = Field(..., description="¿Tiene préstamo hipotecario?")
+    job: JobEnum = Field(..., description="Tipo de trabajo del cliente")

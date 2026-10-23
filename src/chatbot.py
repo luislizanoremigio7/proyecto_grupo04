@@ -6,13 +6,29 @@ from rich.prompt import Prompt
 
 console = Console()
 API_URL = "http://127.0.0.1:8000/predecir"
+MAX_REINTENTOS = 3
 
 MAPEO_OPCIONES = {
-    "education": {
-        "primaria": "primary",
-        "secundaria": "secondary",
-        "superior": "tertiary", "universitaria": "tertiary", "universitario": "tertiary", "tecnica": "tertiary", "técnica": "tertiary",
+    "job": {
+        "administrador": "admin.", "administrativo": "admin.", "admin": "admin.",
+        "obrero": "blue-collar", "operario": "blue-collar",
+        "empresario": "entrepreneur", "emprendedor": "entrepreneur",
+        "trabajadora del hogar": "housemaid", "trabajador del hogar": "housemaid", "empleada domestica": "housemaid", "empleada doméstica": "housemaid",
+        "gerente": "management", "gerencia": "management", "jefe": "management",
+        "jubilado": "retired", "jubilada": "retired",
+        "independiente": "self-employed", "autonomo": "self-employed", "autónomo": "self-employed",
+        "servicios": "services",
+        "estudiante": "student",
+        "tecnico": "technician", "técnico": "technician",
+        "desempleado": "unemployed", "desempleada": "unemployed",
         "desconocido": "unknown"
+    },
+    "month": {
+        "enero": "jan", "febrero": "feb", "marzo": "mar", "abril": "apr", "mayo": "may", "junio": "jun",
+        "julio": "jul", "agosto": "aug", "septiembre": "sep", "setiembre": "sep", "octubre": "oct",
+        "noviembre": "nov", "diciembre": "dec",
+        "1": "jan", "2": "feb", "3": "mar", "4": "apr", "5": "may", "6": "jun",
+        "7": "jul", "8": "aug", "9": "sep", "10": "oct", "11": "nov", "12": "dec"
     },
     "yes_no": {
         "si": "yes", "sí": "yes", "s": "yes", "yes": "yes",
@@ -33,50 +49,40 @@ MAPEO_OPCIONES = {
 
 PREGUNTAS_SLOTS = [
     {
-        "clave": "housing",
-        "pregunta": "1. ¿Cuenta el cliente con un CRÉDITO HIPOTECARIO activo?",
-        "tipo": str, "mapeo": "yes_no",
-        "opciones_humanas": "sí, no",
-        "ayuda": "Por favor responda únicamente 'sí' o 'no'."
+        "clave": "poutcome",
+        "pregunta": "1. ¿Cuál fue el RESULTADO de la campaña anterior?",
+        "tipo": str, "mapeo": "poutcome",
+        "opciones_humanas": "éxito, fallo, desconocido, otro",
+        "ayuda": "Opciones válidas: éxito, fallo, desconocido (si no hubo campaña anterior) u otro."
+    },
+    {
+        "clave": "month",
+        "pregunta": "2. ¿En qué MES se realizará la llamada?",
+        "tipo": str, "mapeo": "month",
+        "opciones_humanas": "enero ... diciembre, o su número",
+        "ayuda": "Escriba el nombre del mes (por ejemplo: octubre) o su número (10)."
     },
     {
         "clave": "contact",
-        "pregunta": "2. ¿Por qué MEDIO DE CONTACTO se le comunicó?",
+        "pregunta": "3. ¿Por qué MEDIO DE CONTACTO se le comunicará?",
         "tipo": str, "mapeo": "contact",
         "opciones_humanas": "celular, teléfono, desconocido",
         "ayuda": "Opciones válidas: celular, teléfono o desconocido."
     },
     {
-        "clave": "previous",
-        "pregunta": "3. ¿Número de CONTACTOS PREVIOS antes de esta campaña?",
-        "tipo": int, "minimo": 0, "maximo": 100,
-        "ayuda": "Ingrese un número entero (ejemplo: 0 para cliente nuevo, 1, 2, etc.)."
+        "clave": "housing",
+        "pregunta": "4. ¿Cuenta el cliente con un CRÉDITO HIPOTECARIO activo?",
+        "tipo": str, "mapeo": "yes_no",
+        "opciones_humanas": "sí, no",
+        "ayuda": "Por favor responda únicamente 'sí' o 'no'."
     },
     {
-        "clave": "pdays",
-        "pregunta": "4. ¿DÍAS transcurridos desde el último contacto previo?",
-        "tipo": int, "minimo": -1, "maximo": 999,
-        "ayuda": "Ingrese la cantidad de días transcurridos."
-    },
-    {
-        "clave": "poutcome",
-        "pregunta": "5. ¿Cuál fue el RESULTADO de la campaña anterior?",
-        "tipo": str, "mapeo": "poutcome",
-        "opciones_humanas": "éxito, fallo, desconocido, otro",
-        "ayuda": "Opciones válidas: éxito, fallo, desconocido u otro."
-    },
-    {
-        "clave": "education",
-        "pregunta": "6. ¿Cuál es su NIVEL EDUCATIVO?",
-        "tipo": str, "mapeo": "education",
-        "opciones_humanas": "superior, secundaria, primaria, desconocido",
-        "ayuda": "Opciones válidas: superior, secundaria, primaria o desconocido."
-    },
-    {
-        "clave": "balance",
-        "pregunta": "7. ¿Cuál es su SALDO PROMEDIO ANUAL en cuenta (€/$)?",
-        "tipo": float, "minimo": -8100.0, "maximo": 100000.0,
-        "ayuda": "Ingrese un monto numérico válido (ejemplo: 1500)."
+        "clave": "job",
+        "pregunta": "5. ¿Cuál es la OCUPACIÓN del cliente?",
+        "tipo": str, "mapeo": "job",
+        "opciones_humanas": "administrativo, obrero, gerente, técnico, servicios, jubilado, estudiante, ...",
+        "ayuda": "Opciones: administrativo, obrero, empresario, trabajador del hogar, gerente, jubilado, "
+                 "independiente, servicios, estudiante, técnico, desempleado o desconocido."
     }
 ]
 
@@ -98,18 +104,13 @@ def derivar_a_humano(motivo: str):
 
 def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
     """
-    Captura, valida y mapea la entrada del usuario para un slot específico, 
-    gestionando la resolución lógica automática y comandos globales.
+    Captura, valida y mapea la entrada del usuario para un slot específico,
+    gestionando los comandos globales y un máximo de 3 intentos por pregunta.
     """
-    if config_slot["clave"] == "pdays" and datos_acumulados.get("previous", 0) == 0:
-        console.print("\n[dim]ℹ️ Como indicó 0 contactos previos, se asigna automáticamente 'Sin contacto previo' (-1).[/dim]")
-        return -1, "OK"
-
-    if config_slot["clave"] == "poutcome" and datos_acumulados.get("previous", 0) == 0:
-        console.print("[dim]ℹ️ Asignando resultado 'desconocido' por ser cliente nuevo.[/dim]")
-        return "unknown", "OK"
-
+    intentos_fallidos = 0
     while True:
+        if intentos_fallidos >= MAX_REINTENTOS:
+            return None, "MAX_REINTENTOS"
         if "opciones_humanas" in config_slot:
             prompt_txt = f"\n[bold cyan]{config_slot['pregunta']}[/bold cyan] [dim]({config_slot['opciones_humanas']})[/dim]"
         else:
@@ -131,7 +132,8 @@ def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
             if val_mapeado:
                 return val_mapeado, "OK"
             else:
-                console.print(f"[bold yellow]⚠️ Entrada no comprendida.[/bold yellow] {config_slot['ayuda']}")
+                intentos_fallidos += 1
+                console.print(f"[bold yellow]⚠️ Entrada no comprendida (intento {intentos_fallidos} de {MAX_REINTENTOS}).[/bold yellow] {config_slot['ayuda']}")
                 continue
 
         try:
@@ -147,55 +149,32 @@ def capturar_slot_interactivo(config_slot, datos_acumulados: dict):
         except ValueError:
             console.print(f"[bold yellow]⚠️ Entrada no válida.[/bold yellow] {config_slot['ayuda']}")
 
-def construir_payload_completo(datos_7_vars: dict) -> dict:
+def construir_payload_completo(datos_colectados: dict) -> dict:
     """
-    Construye el vector de características completo para la API incorporando 
-    los valores recolectados en los slots y completando los parámetros neutros restantes.
+    Construye el JSON para la API solo con los 5 datos que respondió el usuario.
+    No se completan valores supuestos ni se envía 'duration' (dato del futuro).
     """
-    return {
-        "housing": datos_7_vars.get("housing", "no"),
-        "contact": datos_7_vars.get("contact", "cellular"),
-        "previous": datos_7_vars.get("previous", 0),
-        "pdays": datos_7_vars.get("pdays", -1),
-        "poutcome": datos_7_vars.get("poutcome", "unknown"),
-        "education": datos_7_vars.get("education", "secondary"),
-        "balance": datos_7_vars.get("balance", 0.0),
-        "age": 40,
-        "job": "management",
-        "marital": "married",
-        "default": "no",
-        "loan": "no",
-        "day": 15,
-        "month": "may",
-        "campaign": 1,
-        "duration": 250.0
-    }
+    return {slot["clave"]: datos_colectados[slot["clave"]] for slot in PREGUNTAS_SLOTS}
 
 def interpretar_resultado_no_tecnico(data_api: dict):
     """
-    Procesa la respuesta JSON de la API y muestra una recomendación comercial 
-    comprensible y orientada a usuarios no técnicos.
+    Procesa la respuesta JSON de la API y muestra una recomendación comercial
+    comprensible (sí o no) orientada a usuarios no técnicos.
     """
-    probabilidad = data_api.get("probabilidad", data_api.get("probabilidad_suscripcion", 0.0))
-    if probabilidad <= 1.0:
-        probabilidad = round(probabilidad * 100, 2)
-    
-    etiqueta = data_api.get("prediccion", data_api.get("etiqueta", "no"))
+    llamar = data_api.get("respuesta") == "sí"
 
-    console.print("\n" + "=" * 60, style="bold green" if (etiqueta in [1, "yes"] or probabilidad >= 50.0) else "bold yellow")
+    console.print("\n" + "=" * 60, style="bold green" if llamar else "bold yellow")
 
-    if etiqueta in [1, "yes"] or probabilidad >= 50.0:
+    if llamar:
         mensaje_claro = (
-            f"[bold green]✨ ¡ALTA PROBABILIDAD DE SUSCRIPCIÓN![/bold green]\n\n"
-            f"El cliente tiene un [bold]{probabilidad}% de probabilidad[/bold] de aceptar el producto.\n"
-            f"💡 [bold]Sugerencia:[/bold] Presentar la tasa promocional e incentivar el cierre de inmediato."
+            f"[bold green]✅ SÍ, CONVIENE LLAMAR A ESTE CLIENTE[/bold green]\n\n"
+            f"💡 [bold]Sugerencia:[/bold] Inclúyalo en su lista de llamadas y presente la tasa promocional."
         )
         estilo_borde = "green"
     else:
         mensaje_claro = (
-            f"[bold yellow]⚠️ BAJA PROBABILIDAD DE ACEPTACIÓN[/bold yellow]\n\n"
-            f"El cliente tiene un [bold]{probabilidad}% de probabilidad[/bold].\n"
-            f"💡 [bold]Sugerencia:[/bold] Ofrecer productos alternativos con liquidez inmediata o no insistir."
+            f"[bold yellow]❌ NO, NO PRIORIZAR POR AHORA[/bold yellow]\n\n"
+            f"💡 [bold]Sugerencia:[/bold] Atienda primero a otros clientes de su lista."
         )
         estilo_borde = "yellow"
 
@@ -222,6 +201,9 @@ def ejecutar_chatbot():
         if estado == "SOLICITUD_USUARIO":
             derivar_a_humano("El usuario solicitó atención personalizada.")
             return
+        if estado == "MAX_REINTENTOS":
+            derivar_a_humano(f"No se logró entender la respuesta después de {MAX_REINTENTOS} intentos.")
+            return
 
         datos_colectados[slot["clave"]] = valor
 
@@ -237,7 +219,7 @@ def ejecutar_chatbot():
             console.print(f"\n[bold red]⚠️ Error ({respuesta.status_code}):[/bold red] No se pudo procesar la predicción.")
             derivar_a_humano("Error interno en el backend.")
 
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         console.print("\n[bold red]❌ Error de conexión con la API en http://127.0.0.1:8000/predecir.[/bold red]")
         derivar_a_humano("Servicio no disponible.")
 

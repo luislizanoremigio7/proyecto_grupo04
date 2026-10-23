@@ -148,10 +148,6 @@
     <form id="predictionForm" onsubmit="enviarDatos(event)">
         <div class="grid">
             <div class="form-group">
-                <label>Edad:</label>
-                <input type="number" id="age" min="18" max="100" value="35" required>
-            </div>
-            <div class="form-group">
                 <label>Ocupación (Trabajo):</label>
                 <select id="job">
                     <option value="admin.">Administrativo</option>
@@ -169,43 +165,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Estado Civil:</label>
-                <select id="marital">
-                    <option value="married" selected>Casado/a</option>
-                    <option value="single">Soltero/a</option>
-                    <option value="divorced">Divorciado/a</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Nivel Educativo:</label>
-                <select id="education">
-                    <option value="tertiary" selected>Superior / Universitaria</option>
-                    <option value="secondary">Secundaria</option>
-                    <option value="primary">Primaria</option>
-                    <option value="unknown">Desconocido</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>¿Tiene crédito en mora (default)?</label>
-                <select id="default">
-                    <option value="no" selected>No</option>
-                    <option value="yes">Sí</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Saldo promedio anual (€):</label>
-                <input type="number" id="balance" step="any" value="1500" required>
-            </div>
-            <div class="form-group">
                 <label>¿Tiene crédito hipotecario?</label>
                 <select id="housing">
-                    <option value="no" selected>No</option>
-                    <option value="yes">Sí</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>¿Tiene préstamo personal?</label>
-                <select id="loan">
                     <option value="no" selected>No</option>
                     <option value="yes">Sí</option>
                 </select>
@@ -219,11 +180,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Día del último contacto:</label>
-                <input type="number" id="day" min="1" max="31" value="18" required>
-            </div>
-            <div class="form-group">
-                <label>Mes del último contacto:</label>
+                <label>Mes de la llamada:</label>
                 <select id="month">
                     <option value="jan">Enero</option>
                     <option value="feb">Febrero</option>
@@ -240,21 +197,9 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Contactos en esta campaña:</label>
-                <input type="number" id="campaign" min="1" value="1" required>
-            </div>
-            <div class="form-group">
-                <label>Días desde campaña anterior (-1 si ninguno):</label>
-                <input type="number" id="pdays" value="-1" required>
-            </div>
-            <div class="form-group">
-                <label>Contactos previos:</label>
-                <input type="number" id="previous" min="0" value="0" required>
-            </div>
-            <div class="form-group">
                 <label>Resultado campaña anterior:</label>
                 <select id="poutcome">
-                    <option value="unknown" selected>Desconocido / N/A</option>
+                    <option value="unknown" selected>Desconocido / sin campaña anterior</option>
                     <option value="success">Éxito</option>
                     <option value="failure">Fallo</option>
                     <option value="other">Otro</option>
@@ -262,7 +207,7 @@
             </div>
         </div>
 
-        <button type="submit" class="btn-submit">🔮 Estimar Probabilidad de Suscripción</button>
+        <button type="submit" class="btn-submit">🔮 ¿Conviene llamar a este cliente?</button>
     </form>
 
     <div id="resultadoBox" class="result-box">
@@ -277,36 +222,16 @@
 <script>
     function cargarPerfil(tipo) {
         if (tipo === 'normal') {
-            document.getElementById('age').value = 35;
             document.getElementById('job').value = "blue-collar";
-            document.getElementById('marital').value = "married";
-            document.getElementById('education').value = "secondary";
-            document.getElementById('default').value = "no";
-            document.getElementById('balance').value = 200;
             document.getElementById('housing').value = "yes";
-            document.getElementById('loan').value = "no";
-            document.getElementById('contact').value = "cellular";
-            document.getElementById('day').value = 12;
+            document.getElementById('contact').value = "unknown";
             document.getElementById('month').value = "may";
-            document.getElementById('campaign').value = 2;
-            document.getElementById('pdays').value = -1;
-            document.getElementById('previous').value = 0;
             document.getElementById('poutcome').value = "unknown";
         } else if (tipo === 'ideal') {
-            document.getElementById('age').value = 48;
-            document.getElementById('job').value = "management";
-            document.getElementById('marital').value = "married";
-            document.getElementById('education').value = "tertiary";
-            document.getElementById('default').value = "no";
-            document.getElementById('balance').value = 5200;
+            document.getElementById('job').value = "retired";
             document.getElementById('housing').value = "no";
-            document.getElementById('loan').value = "no";
             document.getElementById('contact').value = "cellular";
-            document.getElementById('day').value = 22;
             document.getElementById('month').value = "oct";
-            document.getElementById('campaign').value = 1;
-            document.getElementById('pdays').value = 180;
-            document.getElementById('previous').value = 3;
             document.getElementById('poutcome').value = "success";
         }
     }
@@ -315,21 +240,11 @@
         event.preventDefault();
         
         const datos = {
-            age: parseInt(document.getElementById('age').value),
-            job: document.getElementById('job').value,
-            marital: document.getElementById('marital').value,
-            education: document.getElementById('education').value,
-            default: document.getElementById('default').value,
-            balance: parseFloat(document.getElementById('balance').value),
-            housing: document.getElementById('housing').value,
-            loan: document.getElementById('loan').value,
-            contact: document.getElementById('contact').value,
-            day: parseInt(document.getElementById('day').value),
+            poutcome: document.getElementById('poutcome').value,
             month: document.getElementById('month').value,
-            campaign: parseInt(document.getElementById('campaign').value),
-            pdays: parseInt(document.getElementById('pdays').value),
-            previous: parseInt(document.getElementById('previous').value),
-            poutcome: document.getElementById('poutcome').value
+            contact: document.getElementById('contact').value,
+            housing: document.getElementById('housing').value,
+            job: document.getElementById('job').value
         };
 
         const box = document.getElementById('resultadoBox');
@@ -344,24 +259,28 @@
                 body: JSON.stringify(datos)
             });
 
-            if (!response.ok) {
-                throw new Error('Error al conectar con la API');
-            }
-
             const res = await response.json();
             box.style.display = 'block';
-            
-            const prob = res.probabilidad_suscripcion;
-            barra.style.width = prob + '%';
 
-            if (res.predice_suscripcion) {
+            if (!response.ok) {
+                box.className = 'result-box result-no';
+                txtResultado.innerHTML = `⚠️ Revise los datos ingresados`;
+                detResultado.innerHTML = (res.detalles || [res.detail || 'Error en la API']).join('<br>');
+                barra.style.width = '0%';
+                return;
+            }
+
+            if (res.respuesta === 'sí') {
                 box.className = 'result-box result-yes';
-                txtResultado.innerHTML = `✨ ¡Cliente con alta probabilidad de suscripción!`;
+                txtResultado.innerHTML = `✅ SÍ, conviene llamar a este cliente`;
+                detResultado.innerHTML = `Sugerencia: inclúyalo en su lista de llamadas.`;
+                barra.style.width = '100%';
             } else {
                 box.className = 'result-box result-no';
-                txtResultado.innerHTML = `⚠️ Baja probabilidad de aceptación`;
+                txtResultado.innerHTML = `❌ NO, no priorizar por ahora`;
+                detResultado.innerHTML = `Sugerencia: atienda primero a otros clientes de su lista.`;
+                barra.style.width = '0%';
             }
-            detResultado.innerHTML = `Probabilidad calculada: <strong>${prob}%</strong>`;
 
         } catch (error) {
             alert('No se pudo comunicar con el servidor FastAPI. Asegúrate de que Uvicorn esté corriendo.');
